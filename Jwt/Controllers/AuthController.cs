@@ -24,6 +24,7 @@ namespace Jwt.Controllers
 			_configuration = configuration;
 		}
 
+		// Seeding Roles, Creating Roles
 		[HttpPost("seed-roles")]
 		public async Task<IActionResult> SeedRoles()
 		{
@@ -43,6 +44,7 @@ namespace Jwt.Controllers
 		}
 
 
+		// Registering as a user
 		[HttpPost("register")]
 		public async Task<IActionResult> Register([FromBody] RegisterDto user)
 		{
@@ -75,8 +77,8 @@ namespace Jwt.Controllers
 
 			return Ok("Registeration has been successfully done");
 		}
-
-
+		
+		// User Part
 		[HttpPost("login")]
 		public async Task<IActionResult> Login([FromBody] LoginDto user)
 		{
@@ -105,6 +107,7 @@ namespace Jwt.Controllers
 			return Ok(token);
 		}
 
+		// Token Generator
 		private string GenerateNewJsonWebToken(List<Claim> claims)
 		{
 			var authSecret = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:Secret"]));
@@ -120,6 +123,37 @@ namespace Jwt.Controllers
 
 			return token;
 		}
+
+		// Make user Admin
+
+		[HttpPost("make-admin")]
+		public async Task<IActionResult> MakeAdmin([FromBody] UpdatePermissonDto perm)
+		{
+			var user = await _usermanager.FindByNameAsync(perm.UserName);
+
+			if (user == null)
+				return BadRequest("Invalid Username!");
+
+			await _usermanager.AddToRoleAsync(user, StaticUserRole.Admin);
+			return Ok("User is now an Admin");
+		}
+
+
+		// Make user Owner
+
+		[HttpPost("make-owner")]
+		public async Task<IActionResult> MakeOwner([FromBody] UpdatePermissonDto perm)
+		{
+			var user = await _usermanager.FindByNameAsync(perm.UserName);
+
+			if (user == null)
+				return BadRequest("Invalid Username!");
+
+			await _usermanager.AddToRoleAsync(user, StaticUserRole.Owner);
+			return Ok("User is now an Owner");
+		}
+
+
 
 
 	}
