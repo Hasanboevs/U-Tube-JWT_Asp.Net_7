@@ -1,3 +1,5 @@
+using Jwt.Core.OtherObjects;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Jwt.Controllers
@@ -11,23 +13,34 @@ namespace Jwt.Controllers
 			"Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
 		};
 
-		private readonly ILogger<WeatherForecastController> _logger;
+		
 
-		public WeatherForecastController(ILogger<WeatherForecastController> logger)
+		[HttpGet("Get")]
+		public IActionResult Get()
 		{
-			_logger = logger;
+			return Ok(Summaries);
 		}
 
-		[HttpGet(Name = "GetWeatherForecast")]
-		public IEnumerable<WeatherForecast> Get()
+
+		[HttpGet("GetUserRole")]
+		[Authorize(Roles = StaticUserRole.User)]
+		public IActionResult GetUserRole()
 		{
-			return Enumerable.Range(1, 5).Select(index => new WeatherForecast
-			{
-				Date = DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-				TemperatureC = Random.Shared.Next(-20, 55),
-				Summary = Summaries[Random.Shared.Next(Summaries.Length)]
-			})
-			.ToArray();
+			return Ok(Summaries);
+		}
+
+		[HttpGet("GetAdminRole")]
+		[Authorize(Roles = StaticUserRole.Admin)]
+		public IActionResult GetAdminRole()
+		{
+			return Ok(Summaries);
+		}
+
+		[HttpGet("GetOwnerRole")]
+		[Authorize(Roles = StaticUserRole.Owner)]
+		public IActionResult GetOwnerRole()
+		{
+			return Ok(Summaries);
 		}
 	}
 }
