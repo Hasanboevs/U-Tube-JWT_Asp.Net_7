@@ -17,6 +17,7 @@ namespace Jwt.Controllers
 		private readonly UserManager<IdentityUser> _usermanager;
 		private readonly RoleManager<IdentityRole> _rolemanager;
 		private readonly IConfiguration _configuration;
+
 		public AuthController(UserManager<IdentityUser> manager, RoleManager<IdentityRole> rolemanager, IConfiguration configuration)
 		{
 			_usermanager = manager;
@@ -124,9 +125,60 @@ namespace Jwt.Controllers
 			return token;
 		}
 
-		// Make user Admin
+        [HttpPost("refresh-token")]
+        public async Task<IActionResult> RefreshToken([FromBody] TokenResponseDto refreshTokenDto)
+        {
+            var authSecret = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:Secret"]));
+            var handler = new JwtSecurityTokenHandler();
 
-		[HttpPost("make-admin")]
+            try
+            {
+                var principal = handler.ValidateToken(refreshTokenDto.RefreshToken, new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = authSecret,
+                    ValidateIssuer = false,
+                    ValidateAudience = false,
+                    ValidateLifetime = false 
+                }, out var validatedToken);
+
+                if (validatedToken is JwtSecurityToken jwtSecurityToken && jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    var username = principal.Identity.Name; 
+
+
+                    var newAccessToken = GenerateNewAccessToken(principal.Claims);
+                    return Ok(new { accessToken = newAccessToken });
+                }
+            }
+            catch (Exception ex)
+            {
+                return BadRequest("Invalid refresh token");
+            }
+
+            return BadRequest("Invalid refresh token");
+        }
+
+        private string GenerateNewAccessToken(IEnumerable<Claim> claims)
+        {
+            var authSecret = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:Secret"]));
+
+            var tokenObject = new JwtSecurityToken(
+                issuer: _configuration["JWT:ValidIssuer"],
+                audience: _configuration["JWT:ValidAudience"],
+                expires: DateTime.Now.AddHours(1),
+                claims: claims,
+                signingCredentials: new SigningCredentials(authSecret, SecurityAlgorithms.HmacSha256)
+            );
+
+            return new JwtSecurityTokenHandler().WriteToken(tokenObject);
+        }
+
+
+
+        // Make user Admin
+
+        [HttpPost("make-admin")]
 		public async Task<IActionResult> MakeAdmin([FromBody] UpdatePermissonDto perm)
 		{
 			var user = await _usermanager.FindByNameAsync(perm.UserName);
